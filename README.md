@@ -1,0 +1,179 @@
+# 虚环 (Virtual Circle) - 三消类小游戏
+
+## 项目简介
+
+虚环是一款基于 Phaser.js 开发的三消类小游戏，具有精美的界面和流畅的游戏体验。玩家通过交换相邻的方块，使三个或更多相同类型的方块连成一线来消除它们，获得分数并完成关卡目标。
+
+## 技术栈
+
+- **游戏开发框架**: Phaser.js 3
+- **构建工具**: Vite
+- **编程语言**: JavaScript
+- **包管理器**: npm
+
+## 功能特性
+
+### 核心功能
+- ✅ 完整的三消游戏逻辑
+- ✅ 关卡选择系统
+- ✅ 自定义难度设置
+- ✅ 分数系统和关卡分数目标
+- ✅ 剩余步数限制
+- ✅ 方块消除动画效果
+- ✅ 选中方块高亮提示
+- ✅ 背景音乐和音乐开关
+- ✅ 流畅的场景过渡动画
+
+### 游戏界面
+- ✅ 登录界面
+- ✅ 关卡选择界面
+- ✅ 游戏主界面
+- ✅ 游戏结束/胜利界面
+- ✅ 响应式设计，适配不同屏幕尺寸
+
+### 游戏机制
+- ✅ 方块交换逻辑
+- ✅ 匹配检测（横向和纵向）
+- ✅ 方块消除和下落填充
+- ✅ 连续消除检测
+- ✅ 游戏胜利/失败判断
+
+## 安装和运行
+
+### 前提条件
+- Node.js 14.0 或更高版本
+- npm 6.0 或更高版本
+
+### 安装步骤
+
+1. 克隆项目到本地
+   ```bash
+   git clone <项目地址>
+   cd Virtual Circle
+   ```
+
+2. 安装依赖
+   ```bash
+   npm install
+   ```
+
+3. 启动开发服务器
+   ```bash
+   npm run dev
+   ```
+
+4. 在浏览器中打开
+   ```
+   http://localhost:5173
+   ```
+
+### 构建生产版本
+
+```bash
+npm run build
+```
+
+构建后的文件会生成在 `dist` 目录中。
+
+## 游戏玩法
+
+1. **登录界面**: 点击「开始游戏」按钮进入关卡选择界面
+
+2. **关卡选择**: 
+   - 选择预设关卡（1-5关）
+   - 或点击「自定义关卡」设置自定义难度
+
+3. **游戏界面**: 
+   - 点击一个方块，然后点击相邻的方块进行交换
+   - 当三个或更多相同类型的方块连成一线时，它们会被消除
+   - 消除方块会获得分数，每消除一个方块得10分
+   - 游戏目标是在规定步数内达到关卡分数目标
+
+4. **游戏结束**: 
+   - 达到分数目标：游戏胜利
+   - 步数用完但未达到分数目标：游戏结束
+
+5. **控制选项**: 
+   - 点击右上角的音乐图标可以开启/关闭背景音乐
+   - 游戏结束后可以选择重新开始或返回关卡选择
+
+## 项目结构
+
+```
+Virtual Circle/
+├── index.html          # 游戏入口文件
+├── package.json        # 项目配置和依赖
+├── vite.config.js      # Vite 配置文件
+├── src/
+│   ├── main.js         # 游戏核心逻辑和场景实现
+│   └── style.css       # 游戏样式
+└── image/              # 游戏图片资源
+    ├── background/     # 背景图片
+    └── blocks/         # 方块图片
+```
+
+## 核心文件说明
+
+### src/main.js
+- 包含游戏的所有场景实现：
+  - `LoginScene`: 登录界面
+  - `LevelSelectScene`: 关卡选择界面
+  - `GameScene`: 游戏主界面
+- 实现了游戏的核心逻辑：
+  - 方块生成和消除
+  - 分数计算
+  - 游戏状态管理
+  - 动画效果
+
+### index.html
+- 游戏入口文件，负责加载 Phaser 库和设置基本样式
+
+### src/style.css
+- 控制游戏界面布局和样式
+
+## 开发指南
+
+### 添加新关卡
+1. 在 `LevelSelectScene` 中添加新的关卡按钮
+2. 在 `GameScene` 中设置对应关卡的分数目标
+
+### 修改游戏参数
+- 方块大小: 修改 `GameScene` 中的 `blockSize` 属性
+- 游戏板大小: 修改 `GameScene` 中的 `boardWidth` 和 `boardHeight` 属性
+- 方块类型数量: 修改 `GameScene` 中的 `blockTypes` 属性
+- 初始步数: 修改 `GameScene` 中的 `moves` 属性
+
+### 添加新功能
+1. 在 `GameScene` 中添加新的方法
+2. 在适当的生命周期方法中调用
+3. 添加相应的 UI 元素和交互逻辑
+
+## 注意事项
+
+1. **图片资源**: 确保 `image/blocks/` 目录中有足够的方块图片，数量应与 `blockTypes` 一致
+2. **背景音乐**: 确保 `image/background/` 目录中有背景音乐文件
+3. **性能优化**: 游戏使用了 Phaser 的内置优化，但在低配置设备上可能会有性能问题
+4. **兼容性**: 游戏支持现代浏览器，IE 浏览器可能存在兼容性问题
+
+## 游戏截图
+
+### 登录界面
+![登录界面](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=login%20screen%20for%20a%20match-3%20game%20with%20colorful%20background%20and%20start%20button&image_size=square_hd)
+
+### 关卡选择界面
+![关卡选择界面](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=level%20selection%20screen%20for%20a%20match-3%20game%20with%20level%20buttons%20and%20custom%20level%20option&image_size=square_hd)
+
+### 游戏主界面
+![游戏主界面](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=match-3%20game%20board%20with%20colorful%20blocks%2C%20score%20display%2C%20and%20moves%20counter&image_size=square_hd)
+
+## 许可证
+
+MIT License
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request 来改进游戏！
+
+---
+
+**享受游戏的乐趣！** 🎮
