@@ -114,7 +114,7 @@ class LoginScene extends Phaser.Scene {
         })
         .catch(error => {
           console.error('Failed to load notice data:', error)
-          this.renderNoticePanel({ content: '公告加载失败，请稍后再试' })
+          this.renderNoticePanel({ content: '公告加载失败，请稍后再试！' })
         })
     } else {
       // 使用缓存的公告数据
