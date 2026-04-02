@@ -198,20 +198,6 @@ Virtual Circle/
 3. **性能优化**: 游戏使用了 Phaser 的内置优化，但在低配置设备上可能会有性能问题
 4. **兼容性**: 游戏支持现代浏览器，IE 浏览器可能存在兼容性问题
 
-## 游戏截图
-
-### 登录界面
-![登录界面](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=login%20screen%20for%20a%20match-3%20game%20with%20colorful%20background%20and%20start%20button&image_size=square_hd)
-
-### 关卡选择界面
-![关卡选择界面](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=level%20selection%20screen%20for%20a%20match-3%20game%20with%20level%20buttons%20and%20custom%20level%20option&image_size=square_hd)
-
-### 游戏主界面
-![游戏主界面](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=match-3%20game%20board%20with%20colorful%20blocks%2C%20score%20display%2C%20and%20moves%20counter&image_size=square_hd)
-
-### 公告界面
-![公告界面](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=game%20notice%20panel%20with%20title%2C%20date%2C%20and%20content&image_size=square_hd)
-
 ## 许可证
 
 MIT License
