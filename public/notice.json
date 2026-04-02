@@ -1,0 +1,43 @@
+{
+  "content": "2026.4.2更新内容：/n-修复了一些已知问题/n-添加新角色“东爱璃Lovely”、“恬豆发芽了”/n-添加Combo暴击/n-调整游戏难度（尽量靠近曈姐难度）/n-调整游戏UI设计",
+  "animationConfig": {
+    "disableScaling": true,
+    "comboAnimation": {
+      "triggerCondition": "consecutiveSuccessfulActions",
+      "visualIndicators": {
+        "position": {
+          "x": "center",
+          "y": "top"
+        },
+        "styling": {
+          "fontSize": "24px",
+          "fontWeight": "bold",
+          "color": "#FFD700",
+          "shadow": true
+        }
+      },
+      "timing": {
+        "duration": 400,
+        "easing": "ease-in-out"
+      },
+      "entranceAnimation": {
+        "type": "fadeIn",
+        "duration": 300
+      },
+      "exitAnimation": {
+        "type": "fadeOut",
+        "duration": 300
+      }
+    }
+  },
+  "levelConfig": {
+    "level1": {
+      "blockTypes": [
+        "nana7mi",
+        "shizukululu",
+        "taffy",
+        "xingtong"
+      ]
+    }
+  }
+}
