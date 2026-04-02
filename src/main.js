@@ -5,8 +5,8 @@ class LoginScene extends Phaser.Scene {
   }
 
   preload() {
-    // 加载登录界面图片
-    this.load.image('loginBg', 'image/background/login_bg.png')
+    // 加载登录界面视频
+    this.load.video('backgroundVideo', 'background.mp4')
     this.load.image('logo', 'image/logo.png')
     this.load.image('qqButton', 'image/QQ.png')
     this.load.image('wechatButton', 'image/WECHAT.png')
@@ -22,9 +22,28 @@ class LoginScene extends Phaser.Scene {
   }
 
   create() {
-    // 添加背景图片
-    this.add.image(this.sys.game.config.width / 2, this.sys.game.config.height / 2, 'loginBg')
-      .setDisplaySize(this.sys.game.config.width, this.sys.game.config.height)
+    // 添加背景视频
+    const video = this.add.video(this.sys.game.config.width / 2, this.sys.game.config.height / 2, 'backgroundVideo')
+    
+    // 计算视频缩放比例，确保视频覆盖整个屏幕
+    const videoWidth = 1470 // 视频实际宽度
+    const videoHeight = 630 // 视频实际高度
+    const gameWidth = this.sys.game.config.width
+    const gameHeight = this.sys.game.config.height
+    
+    // 计算缩放比例，确保视频覆盖整个屏幕
+    const scaleX = gameWidth / videoWidth
+    const scaleY = gameHeight / videoHeight
+    const scale = Math.max(scaleX, scaleY)
+    
+    // 设置视频缩放和位置
+    video.setScale(scale)
+    video.setPosition(gameWidth / 2, gameHeight / 2)
+    video.setDepth(-1) // 确保视频在最底层
+    
+    // 确保视频播放
+    video.play(true) // true 表示循环播放
+    video.setMute(true) // 禁用声音
 
     // 定义左侧边距常量，确保logo和版本号对齐
     const leftMargin = 90
@@ -35,7 +54,7 @@ class LoginScene extends Phaser.Scene {
 
     // 计算按钮位置（下四分之一部分）
     const buttonY = this.sys.game.config.height * 3/4
-    const buttonGap = 32 // 按钮之间的间隙
+    const buttonGap = 64 // 按钮之间的间隙
     const buttonScale = 0.8
 
     // 加载按钮图片以获取尺寸
@@ -53,6 +72,24 @@ class LoginScene extends Phaser.Scene {
     qqButton.on('pointerdown', () => {
       this.scene.start('LevelSelectScene')
     })
+    
+    // QQ按钮悬停效果
+    qqButton.on('pointerover', () => {
+      this.tweens.add({
+        targets: qqButton,
+        scale: buttonScale * 0.95,
+        duration: 150,
+        ease: 'Power2.easeOut'
+      })
+    })
+    qqButton.on('pointerout', () => {
+      this.tweens.add({
+        targets: qqButton,
+        scale: buttonScale,
+        duration: 150,
+        ease: 'Power2.easeOut'
+      })
+    })
 
     // 添加微信登录按钮
     const wechatButton = this.add.image(startX + qqButtonWidth + buttonGap + wechatButtonWidth / 2, buttonY, 'wechatButton')
@@ -61,6 +98,24 @@ class LoginScene extends Phaser.Scene {
     wechatButton.on('pointerdown', () => {
       this.scene.start('LevelSelectScene')
     })
+    
+    // 微信按钮悬停效果
+    wechatButton.on('pointerover', () => {
+      this.tweens.add({
+        targets: wechatButton,
+        scale: buttonScale * 0.95,
+        duration: 150,
+        ease: 'Power2.easeOut'
+      })
+    })
+    wechatButton.on('pointerout', () => {
+      this.tweens.add({
+        targets: wechatButton,
+        scale: buttonScale,
+        duration: 150,
+        ease: 'Power2.easeOut'
+      })
+    })
 
     // 添加版本信息到左下角，使用相同的左侧边距
     this.add.text(leftMargin, this.sys.game.config.height - 50, '整活版本, 不代表最终品质', {
@@ -68,7 +123,7 @@ class LoginScene extends Phaser.Scene {
       fill: '#ffffff'
     })
 
-    this.add.text(leftMargin, this.sys.game.config.height - 30, '游戏版本号: 0.1.140483', {
+    this.add.text(leftMargin, this.sys.game.config.height - 30, '游戏版本号: 0.1.182568', {
       fontSize: '12px',
       fill: '#ffffff'
     })
@@ -106,7 +161,7 @@ class LoginScene extends Phaser.Scene {
     // 检查是否有缓存的公告数据
     if (!this.noticeData) {
       // 从JSON文件获取公告内容
-      fetch('public/notice.json')
+      fetch('notice.json')
         .then(response => response.json())
         .then(data => {
           this.noticeData = data
@@ -114,7 +169,7 @@ class LoginScene extends Phaser.Scene {
         })
         .catch(error => {
           console.error('Failed to load notice data:', error)
-          this.renderNoticePanel({ content: '公告加载失败，请稍后再试！' })
+          this.renderNoticePanel({ notices: [{ title: '公告加载失败', date: new Date().toLocaleDateString(), content: '公告加载失败，请稍后再试！' }] })
         })
     } else {
       // 使用缓存的公告数据
@@ -1190,6 +1245,12 @@ class CustomLevelScene extends Phaser.Scene {
 }
 
 // 游戏主场景
+/**
+ * 游戏场景类
+ * 负责游戏核心逻辑的实现，包括方块交互、消除、计分等功能
+ * @class GameScene
+ * @extends Phaser.Scene
+ */
 class GameScene extends Phaser.Scene {
   constructor() {
     super('GameScene')
@@ -1225,6 +1286,10 @@ class GameScene extends Phaser.Scene {
     this.load.image('musicOff', 'image/music-off.png')
   }
 
+  /**
+   * 初始化游戏场景
+   * @param {Object} data - 场景数据，包含关卡信息等
+   */
   create(data) {
     // 重置方块数组
     this.blocks = []
@@ -1448,15 +1513,12 @@ class GameScene extends Phaser.Scene {
       fill: '#ffffff'
     })
     
-    this.scoreText = this.add.text(panelX + panelWidth - padding - 80, panelY + padding, `${this.score}/${this.scoreTarget}`, {
+    this.scoreText = this.add.text(panelX + panelWidth - padding, panelY + padding, `${this.score}/${this.scoreTarget}`, {
       fontSize: '16px',
       fill: '#4CAF50',
       fontStyle: 'bold',
-      wordWrap: {
-        width: 80,
-        useAdvancedWrap: true
-      }
-    })
+      align: 'right'
+    }).setOrigin(1, 0)
     
     // 添加分数进度条
     const progressWidth = panelWidth - padding * 2
@@ -1478,11 +1540,12 @@ class GameScene extends Phaser.Scene {
     })
     
     const movesText = this.moves > 0 ? `${this.moves}` : '无限制'
-    this.movesText = this.add.text(panelX + panelWidth - padding - 50, movesY, movesText, {
+    this.movesText = this.add.text(panelX + panelWidth - padding, movesY, movesText, {
       fontSize: '16px',
       fill: this.moves > 0 ? '#3498db' : '#27ae60',
-      fontStyle: 'bold'
-    })
+      fontStyle: 'bold',
+      align: 'right'
+    }).setOrigin(1, 0)
     
     // 添加目标分数显示
     const targetY = movesY + lineHeight
@@ -1491,11 +1554,12 @@ class GameScene extends Phaser.Scene {
       fill: '#ffffff'
     })
     
-    this.scoreTargetText = this.add.text(panelX + panelWidth - padding - 60, targetY, `${this.scoreTarget}`, {
+    this.scoreTargetText = this.add.text(panelX + panelWidth - padding, targetY, `${this.scoreTarget}`, {
       fontSize: '16px',
       fill: '#9b59b6',
-      fontStyle: 'bold'
-    })
+      fontStyle: 'bold',
+      align: 'right'
+    }).setOrigin(1, 0)
     
     // 添加时间显示（如果有时间限制）
     if (this.timeLimit > 0) {
@@ -1691,6 +1755,10 @@ class GameScene extends Phaser.Scene {
     super.destroy()
   }
 
+  /**
+   * 初始化游戏板数组
+   * 创建游戏板的二维数组结构
+   */
   initBoard() {
     // 初始化游戏板数组
     for (let y = 0; y < this.boardHeight; y++) {
@@ -1701,6 +1769,10 @@ class GameScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * 生成方块
+   * 创建游戏板上的方块并添加动画效果
+   */
   generateBlocks() {
     // 生成方块
     for (let y = 0; y < this.boardHeight; y++) {
@@ -1743,6 +1815,13 @@ class GameScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * 检查是否会形成三连
+   * @param {number} x - 方块的x坐标
+   * @param {number} y - 方块的y坐标
+   * @param {number} type - 方块的类型
+   * @returns {boolean} - 是否会形成三连
+   */
   checkThreeInARow(x, y, type) {
     // 检查横向是否有三个相同的
     let count = 1
@@ -1787,13 +1866,20 @@ class GameScene extends Phaser.Scene {
     return false
   }
 
+  /**
+   * 处理鼠标点击
+   * @param {Phaser.Input.Pointer} pointer - 鼠标指针
+   */
   onPointerDown(pointer) {
     // 处理鼠标点击
+    // 清理已销毁的方块
+    this.blocks = this.blocks.filter(block => block && block.active)
+    
     for (const block of this.blocks) {
-      if (block.getBounds().contains(pointer.x, pointer.y)) {
+      if (block && block.active && block.getBounds().contains(pointer.x, pointer.y)) {
         if (this.selectedBlock) {
           // 检查是否可以交换
-          if (this.canSwap(this.selectedBlock, block)) {
+          if (this.selectedBlock.active && this.canSwap(this.selectedBlock, block)) {
             this.swapBlocks(this.selectedBlock, block)
           } else {
             // 取消选择
@@ -1810,38 +1896,34 @@ class GameScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * 检查方块是否可以交换
+   * @param {Phaser.GameObjects.Image} block1 - 第一个方块
+   * @param {Phaser.GameObjects.Image} block2 - 第二个方块
+   * @returns {boolean} - 是否可以交换
+   */
   canSwap(block1, block2) {
+    // 检查方块是否活跃
+    if (!block1 || !block2 || !block1.active || !block2.active) {
+      return false
+    }
+    
     // 检查两个方块是否相邻
     const x1 = block1.getData('x')
     const y1 = block1.getData('y')
     const x2 = block2.getData('x')
     const y2 = block2.getData('y')
 
+    // 检查数据有效性
+    if (x1 === undefined || y1 === undefined || x2 === undefined || y2 === undefined) {
+      return false
+    }
+
     const dx = Math.abs(x1 - x2)
     const dy = Math.abs(y1 - y2)
 
     // 只允许相邻方块交换
-    if (!((dx === 1 && dy === 0) || (dx === 0 && dy === 1))) {
-      return false
-    }
-
-    // 检查交换后是否会形成匹配
-    const type1 = block1.getData('type')
-    const type2 = block2.getData('type')
-
-    // 临时交换
-    const temp = this.board[y1][x1]
-    this.board[y1][x1] = this.board[y2][x2]
-    this.board[y2][x2] = temp
-
-    // 检查是否有匹配
-    const hasMatch = this.checkMatches().length > 0
-
-    // 交换回来
-    this.board[y2][x2] = this.board[y1][x1]
-    this.board[y1][x1] = temp
-
-    return hasMatch
+    return (dx === 1 && dy === 0) || (dx === 0 && dy === 1)
   }
 
   swapBlocks(block1, block2) {
@@ -1868,10 +1950,6 @@ class GameScene extends Phaser.Scene {
       this.updateBlockSelection()
       return
     }
-
-    // 交换游戏板中的数据
-    this.board[y1][x1] = type2
-    this.board[y2][x2] = type1
 
     // 交换方块的位置
     const tempX = block1.x
@@ -1932,6 +2010,10 @@ class GameScene extends Phaser.Scene {
               return
             }
             
+            // 交换游戏板中的数据
+            this.board[y1][x1] = type2
+            this.board[y2][x2] = type1
+
             // 更新方块的数据
             block1.setData('x', x2)
             block1.setData('y', y2)
@@ -2071,14 +2153,31 @@ class GameScene extends Phaser.Scene {
 
   checkMatches() {
     // 检查所有匹配
+    // 边界条件检查
+    if (!this.board || this.board.length === 0) {
+      return []
+    }
+    
     const matches = []
     const matched = Array(this.boardHeight).fill().map(() => Array(this.boardWidth).fill(false))
 
     // 检查横向匹配
     for (let y = 0; y < this.boardHeight; y++) {
+      // 确保board[y]存在
+      if (!this.board[y]) {
+        continue
+      }
+      
       let count = 1
       let startX = 0
       for (let x = 1; x < this.boardWidth; x++) {
+        // 确保board[y][x]和board[y][x-1]存在
+        if (!this.board[y][x] || !this.board[y][x - 1]) {
+          count = 1
+          startX = x
+          continue
+        }
+        
         if (this.board[y][x] === this.board[y][x - 1]) {
           count++
         } else {
@@ -2109,6 +2208,20 @@ class GameScene extends Phaser.Scene {
       let count = 1
       let startY = 0
       for (let y = 1; y < this.boardHeight; y++) {
+        // 确保board[y]和board[y-1]存在
+        if (!this.board[y] || !this.board[y - 1]) {
+          count = 1
+          startY = y
+          continue
+        }
+        
+        // 确保board[y][x]和board[y-1][x]存在
+        if (!this.board[y][x] || !this.board[y - 1][x]) {
+          count = 1
+          startY = y
+          continue
+        }
+        
         if (this.board[y][x] === this.board[y - 1][x]) {
           count++
         } else {
@@ -2139,11 +2252,35 @@ class GameScene extends Phaser.Scene {
 
   removeMatches(matches) {
     // 移除匹配的方块
+    // 边界条件检查
+    if (!matches || matches.length === 0) {
+      return
+    }
+    
+    let destroyedCount = 0
+    const totalMatches = matches.length
+    
+    // 先清空游戏板中的数据，确保数据一致性
     for (const match of matches) {
+      // 确保match对象有效
+      if (match && this.board && this.board[match.y] && this.board[match.y][match.x] !== undefined) {
+        this.board[match.y][match.x] = 0
+      }
+    }
+    
+    for (const match of matches) {
+      // 确保match对象有效
+      if (!match) {
+        continue
+      }
+      
       // 找到对应的方块
       for (let i = this.blocks.length - 1; i >= 0; i--) {
         const block = this.blocks[i]
-        if (block.getData('x') === match.x && block.getData('y') === match.y) {
+        if (block && block.active && block.getData && block.getData('x') === match.x && block.getData('y') === match.y) {
+          // 立即从数组中移除，避免后续操作干扰
+          this.blocks.splice(i, 1)
+          
           // 添加消除动画 - 不改变缩放，只改变透明度
           this.tweens.add({
             targets: block,
@@ -2151,15 +2288,20 @@ class GameScene extends Phaser.Scene {
             duration: 300,
             onComplete: () => {
               block.destroy()
+              destroyedCount++
+              
+              // 当所有方块都销毁完成后，填充新方块
+              if (destroyedCount === totalMatches) {
+                // 等待动画完成后，填充新方块
+                this.time.delayedCall(100, () => {
+                  this.fillBlocks()
+                })
+              }
             }
           })
-          // 从数组中移除
-          this.blocks.splice(i, 1)
           break
         }
       }
-      // 清空游戏板中的数据
-      this.board[match.y][match.x] = 0
     }
 
     // 更新combo计数
@@ -2183,32 +2325,38 @@ class GameScene extends Phaser.Scene {
     const finalScore = Math.floor(baseScore * comboMultiplier)
     this.score += finalScore
     
-    this.scoreText.setText(`${this.score}/${this.scoreTarget}`)
+    // 确保scoreText存在
+    if (this.scoreText) {
+      this.scoreText.setText(`${this.score}/${this.scoreTarget}`)
+      // 添加分数变化动画
+      this.tweens.add({
+        targets: this.scoreText,
+        scale: 1.2,
+        duration: 200,
+        yoyo: true,
+        repeat: 1
+      })
+    }
+    
     // 更新分数进度条
     if (this.scoreProgressFill) {
       this.scoreProgressFill.clear()
-      const progressWidth = Math.min(260 * this.score / this.scoreTarget, 260)
+      const panelWidth = Math.min(280, this.sys.game.config.width * 0.25)
+      const panelX = 30
+      const panelY = 100
+      const padding = 20
+      const lineHeight = 32
+      const progressWidth = panelWidth - padding * 2
+      const progressY = panelY + padding + lineHeight
+      const fillWidth = progressWidth * Math.min(this.score / this.scoreTarget, 1)
       this.scoreProgressFill.fillStyle(0x4CAF50, 0.8)
-      this.scoreProgressFill.fillRoundedRect(70, 150, progressWidth, 10, 5)
+      this.scoreProgressFill.fillRoundedRect(panelX + padding, progressY, fillWidth, 8, 4)
     }
-    // 添加分数变化动画
-    this.tweens.add({
-      targets: this.scoreText,
-      scale: 1.2,
-      duration: 200,
-      yoyo: true,
-      repeat: 1
-    })
     
     // 检查是否达到分数目标
     if (this.score >= this.scoreTarget) {
       this.gameWin()
     }
-
-    // 等待动画完成后，填充新方块
-    this.time.delayedCall(300, () => {
-      this.fillBlocks()
-    })
   }
 
   triggerCombo() {
@@ -2287,6 +2435,18 @@ class GameScene extends Phaser.Scene {
       return
     }
     
+    // 创建方块映射，提高查找效率
+    const blockMap = new Map()
+    for (const block of this.blocks) {
+      if (block && block.active) {
+        const x = block.getData('x')
+        const y = block.getData('y')
+        if (x !== undefined && y !== undefined) {
+          blockMap.set(`${x},${y}`, block)
+        }
+      }
+    }
+    
     for (let x = 0; x < this.boardWidth; x++) {
       let emptySpaces = 0
       // 从下往上填充
@@ -2304,16 +2464,17 @@ class GameScene extends Phaser.Scene {
             this.board[y + emptySpaces][x] = this.board[y][x]
             this.board[y][x] = 0
             // 更新方块位置
-            for (const block of this.blocks) {
-              if (block && block.getData && block.getData('x') === x && block.getData('y') === y) {
-                block.setData('y', y + emptySpaces)
-                this.tweens.add({
-                  targets: block,
-                  y: this.boardY + (y + emptySpaces) * this.blockSize + this.blockSize / 2,
-                  duration: 300
-                })
-                break
-              }
+            const block = blockMap.get(`${x},${y}`)
+            if (block) {
+              block.setData('y', y + emptySpaces)
+              this.tweens.add({
+                targets: block,
+                y: this.boardY + (y + emptySpaces) * this.blockSize + this.blockSize / 2,
+                duration: 300
+              })
+              // 更新方块映射
+              blockMap.delete(`${x},${y}`)
+              blockMap.set(`${x},${y + emptySpaces}`, block)
             }
           }
         }
@@ -2348,6 +2509,7 @@ class GameScene extends Phaser.Scene {
             block.setData('scale', blockScale) // 保存原始缩放比例
             block.setInteractive()
             this.blocks.push(block)
+            blockMap.set(`${x},${y}`, block)
 
             // 添加下落动画
             this.tweens.add({
@@ -2384,19 +2546,31 @@ class GameScene extends Phaser.Scene {
 
   updateBlockSelection() {
     // 更新方块的选择状态
+    // 清理已销毁的方块
+    this.blocks = this.blocks.filter(block => block && block.active)
+    
     for (const block of this.blocks) {
-      if (block === this.selectedBlock) {
-        // 添加明显的高亮效果
-        block.setTint(0xffff00)
-        // 保持原始显示大小比例，只添加高亮效果
-      } else {
-        // 清除高亮效果
-        block.clearTint()
+      if (block && block.active) {
+        if (block === this.selectedBlock) {
+          // 添加明显的高亮效果
+          block.setTint(0xffff00)
+          // 保持原始显示大小比例，只添加高亮效果
+        } else {
+          // 清除高亮效果
+          block.clearTint()
+        }
       }
     }
   }
 
   gameOver() {
+    // 禁用棋盘交互
+    if (this.blocks) {
+      this.blocks.forEach(block => {
+        block.disableInteractive()
+      })
+    }
+    
     // 创建半透明背景
     const overlay = this.add.graphics()
     overlay.fillStyle(0x000000, 0.7)
@@ -2404,56 +2578,82 @@ class GameScene extends Phaser.Scene {
     overlay.setDepth(1000) // 设置高深度，确保在最上层
     
     // 创建游戏结束面板
+    const panelWidth = Math.min(450, this.sys.game.config.width * 0.8)
+    const panelHeight = Math.min(400, this.sys.game.config.height * 0.7)
+    const panelX = (this.sys.game.config.width - panelWidth) / 2
+    const panelY = (this.sys.game.config.height - panelHeight) / 2
+    
+    // 创建面板背景（使用渐变效果）
     const panelBg = this.add.graphics()
-    panelBg.fillStyle(0x1a1a2e, 0.9)
-    panelBg.fillRoundedRect(this.sys.game.config.width / 2 - 200, this.sys.game.config.height / 2 - 150, 400, 350, 20)
+    panelBg.fillStyle(0x1a1a2e, 0.95)
+    panelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 25)
     panelBg.setDepth(1001) // 设置高深度，确保在最上层
     
     // 添加边框
     const panelBorder = this.add.graphics()
     panelBorder.lineStyle(3, 0xe74c3c, 1)
-    panelBorder.strokeRoundedRect(this.sys.game.config.width / 2 - 200, this.sys.game.config.height / 2 - 150, 400, 350, 20)
+    panelBorder.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 25)
     panelBorder.setDepth(1001) // 设置高深度，确保在最上层
     
+    // 添加发光效果
+    const glow = this.add.graphics()
+    glow.lineStyle(5, 0xe74c3c, 0.5)
+    glow.strokeRoundedRect(panelX - 2, panelY - 2, panelWidth + 4, panelHeight + 4, 27)
+    glow.setDepth(1000)
+    
     // 添加标题
-    const title = this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 2 - 100, '游戏结束', {
+    const title = this.add.text(this.sys.game.config.width / 2, panelY + 60, '游戏结束', {
       fontSize: '48px',
       fill: '#ffffff',
       fontStyle: 'bold',
       stroke: '#e74c3c',
-      strokeThickness: 2
+      strokeThickness: 3,
+      fontFamily: 'SimHei, Microsoft YaHei, Heiti SC, 黑体, sans-serif'
     }).setOrigin(0.5)
     title.setDepth(1002) // 设置高深度，确保在最上层
     
     // 添加分数信息
-    const scoreText1 = this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 2 - 30, `最终分数: ${this.score}`, {
+    const scoreText1 = this.add.text(this.sys.game.config.width / 2, panelY + 140, `最终分数: ${this.score}`, {
       fontSize: '24px',
-      fill: '#ffffff'
+      fill: '#ffffff',
+      fontFamily: 'SimHei, Microsoft YaHei, Heiti SC, 黑体, sans-serif'
     }).setOrigin(0.5)
     scoreText1.setDepth(1002) // 设置高深度，确保在最上层
 
-    const scoreText2 = this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 2 + 10, `目标分数: ${this.scoreTarget}`, {
+    const scoreText2 = this.add.text(this.sys.game.config.width / 2, panelY + 180, `目标分数: ${this.scoreTarget}`, {
       fontSize: '24px',
-      fill: '#ffffff'
+      fill: '#ffffff',
+      fontFamily: 'SimHei, Microsoft YaHei, Heiti SC, 黑体, sans-serif'
     }).setOrigin(0.5)
     scoreText2.setDepth(1002) // 设置高深度，确保在最上层
 
+    // 添加鼓励文本
+    const encouragementText = this.add.text(this.sys.game.config.width / 2, panelY + 220, '别灰心，再试一次！', {
+      fontSize: '20px',
+      fill: '#f39c12',
+      fontFamily: 'SimHei, Microsoft YaHei, Heiti SC, 黑体, sans-serif'
+    }).setOrigin(0.5)
+    encouragementText.setDepth(1002) // 设置高深度，确保在最上层
+
     // 添加重新开始按钮
-    const restartButtonBg = this.add.graphics()
-    restartButtonBg.fillStyle(0x3498db, 0.8)
-    restartButtonBg.fillRoundedRect(0, 0, 180, 60, 20)
-    
-    const restartButton = this.add.container(this.sys.game.config.width / 2 - 100, this.sys.game.config.height / 2 + 80, [restartButtonBg])
+    const restartButton = this.add.container(this.sys.game.config.width / 2 - 110, panelY + 280)
     restartButton.setDepth(1003) // 设置高深度，确保在最上层
-    const restartButtonText = this.add.text(0, 0, '重新开始', {
+    
+    const restartButtonBg = this.add.graphics()
+    restartButtonBg.fillStyle(0x3498db, 0.9)
+    restartButtonBg.fillRoundedRect(0, 0, 200, 65, 25)
+    restartButton.add(restartButtonBg)
+    
+    const restartButtonText = this.add.text(100, 32.5, '重新开始', {
       fontSize: '24px',
       fill: '#ffffff',
-      fontStyle: 'bold'
+      fontStyle: 'bold',
+      align: 'center',
+      fontFamily: 'SimHei, Microsoft YaHei, Heiti SC, 黑体, sans-serif'
     }).setOrigin(0.5)
-    restartButtonText.setDepth(1004) // 设置高深度，确保在最上层
     restartButton.add(restartButtonText)
     
-    restartButton.setInteractive(new Phaser.Geom.Rectangle(-90, -30, 180, 60), Phaser.Geom.Rectangle.Contains)
+    restartButton.setInteractive(new Phaser.Geom.Rectangle(0, 0, 200, 65), Phaser.Geom.Rectangle.Contains)
     restartButton.on('pointerdown', () => {
       this.scene.restart()
     })
@@ -2464,34 +2664,39 @@ class GameScene extends Phaser.Scene {
       this.tweens.add({
         targets: restartButton,
         scale: 1.05,
-        duration: 100
+        duration: 150,
+        ease: 'Power2.easeOut'
       })
     })
     restartButton.on('pointerout', () => {
-      restartButtonBg.fillStyle(0x3498db, 0.8)
+      restartButtonBg.fillStyle(0x3498db, 0.9)
       this.tweens.add({
         targets: restartButton,
         scale: 1,
-        duration: 100
+        duration: 150,
+        ease: 'Power2.easeOut'
       })
     })
 
     // 添加返回按钮
-    const backButtonBg = this.add.graphics()
-    backButtonBg.fillStyle(0xe74c3c, 0.8)
-    backButtonBg.fillRoundedRect(0, 0, 180, 60, 20)
-    
-    const backButton = this.add.container(this.sys.game.config.width / 2 + 100, this.sys.game.config.height / 2 + 80, [backButtonBg])
+    const backButton = this.add.container(this.sys.game.config.width / 2 + 110, panelY + 280)
     backButton.setDepth(1003) // 设置高深度，确保在最上层
-    const backButtonText = this.add.text(0, 0, '返回关卡选择', {
+    
+    const backButtonBg = this.add.graphics()
+    backButtonBg.fillStyle(0xe74c3c, 0.9)
+    backButtonBg.fillRoundedRect(0, 0, 200, 65, 25)
+    backButton.add(backButtonBg)
+    
+    const backButtonText = this.add.text(100, 32.5, '返回关卡选择', {
       fontSize: '24px',
       fill: '#ffffff',
-      fontStyle: 'bold'
+      fontStyle: 'bold',
+      align: 'center',
+      fontFamily: 'SimHei, Microsoft YaHei, Heiti SC, 黑体, sans-serif'
     }).setOrigin(0.5)
-    backButtonText.setDepth(1004) // 设置高深度，确保在最上层
     backButton.add(backButtonText)
     
-    backButton.setInteractive(new Phaser.Geom.Rectangle(-90, -30, 180, 60), Phaser.Geom.Rectangle.Contains)
+    backButton.setInteractive(new Phaser.Geom.Rectangle(0, 0, 200, 65), Phaser.Geom.Rectangle.Contains)
     backButton.on('pointerdown', () => {
       this.scene.start('LevelSelectScene')
     })
@@ -2502,15 +2707,17 @@ class GameScene extends Phaser.Scene {
       this.tweens.add({
         targets: backButton,
         scale: 1.05,
-        duration: 100
+        duration: 150,
+        ease: 'Power2.easeOut'
       })
     })
     backButton.on('pointerout', () => {
-      backButtonBg.fillStyle(0xe74c3c, 0.8)
+      backButtonBg.fillStyle(0xe74c3c, 0.9)
       this.tweens.add({
         targets: backButton,
         scale: 1,
-        duration: 100
+        duration: 150,
+        ease: 'Power2.easeOut'
       })
     })
     
@@ -2518,58 +2725,77 @@ class GameScene extends Phaser.Scene {
     overlay.setAlpha(0)
     panelBg.setAlpha(0)
     panelBorder.setAlpha(0)
+    glow.setAlpha(0)
     title.setScale(0).setAlpha(0)
     scoreText1.setAlpha(0)
     scoreText2.setAlpha(0)
+    encouragementText.setAlpha(0)
     restartButton.setScale(0).setAlpha(0)
     backButton.setScale(0).setAlpha(0)
     
+    // 背景渐入
     this.tweens.add({
       targets: overlay,
       alpha: 1,
-      duration: 300,
+      duration: 500,
       ease: 'Power2.easeOut'
     })
     
+    // 面板渐入
     this.tweens.add({
       targets: panelBg,
       alpha: 1,
-      duration: 300,
+      duration: 500,
       delay: 100,
       ease: 'Power2.easeOut'
     })
     
+    // 边框和发光效果
     this.tweens.add({
-      targets: panelBorder,
+      targets: [panelBorder, glow],
       alpha: 1,
-      duration: 300,
+      duration: 500,
       delay: 150,
       ease: 'Power2.easeOut'
     })
     
+    // 标题动画
     this.tweens.add({
       targets: title,
       scale: 1,
       alpha: 1,
-      duration: 500,
+      duration: 700,
       delay: 200,
       ease: 'Back.easeOut'
     })
     
+    // 分数信息动画
     this.tweens.add({
       targets: [scoreText1, scoreText2],
       alpha: 1,
+      y: '+=20',
       duration: 500,
-      delay: 250,
+      delay: 300,
       ease: 'Power2.easeOut'
     })
     
+    // 鼓励文本动画
+    this.tweens.add({
+      targets: encouragementText,
+      alpha: 1,
+      y: '+=20',
+      duration: 500,
+      delay: 400,
+      ease: 'Power2.easeOut'
+    })
+    
+    // 按钮动画
     this.tweens.add({
       targets: restartButton,
       scale: 1,
       alpha: 1,
-      duration: 500,
-      delay: 300,
+      duration: 600,
+      delay: 450,
       ease: 'Bounce.easeOut'
     })
     
@@ -2577,64 +2803,103 @@ class GameScene extends Phaser.Scene {
       targets: backButton,
       scale: 1,
       alpha: 1,
-      duration: 500,
-      delay: 350,
+      duration: 600,
+      delay: 500,
       ease: 'Bounce.easeOut'
     })
   }
 
   gameWin() {
+    // 禁用棋盘交互
+    if (this.blocks) {
+      this.blocks.forEach(block => {
+        block.disableInteractive()
+      })
+    }
+    
     // 创建半透明背景
     const overlay = this.add.graphics()
     overlay.fillStyle(0x000000, 0.7)
     overlay.fillRect(0, 0, this.sys.game.config.width, this.sys.game.config.height)
+    overlay.setDepth(1000) // 设置高深度，确保在最上层
     
     // 创建游戏胜利面板
+    const panelWidth = Math.min(450, this.sys.game.config.width * 0.8)
+    const panelHeight = Math.min(400, this.sys.game.config.height * 0.7)
+    const panelX = (this.sys.game.config.width - panelWidth) / 2
+    const panelY = (this.sys.game.config.height - panelHeight) / 2
+    
+    // 创建面板背景（使用渐变效果）
     const panelBg = this.add.graphics()
-    panelBg.fillStyle(0x1a1a2e, 0.9)
-    panelBg.fillRoundedRect(this.sys.game.config.width / 2 - 200, this.sys.game.config.height / 2 - 150, 400, 350, 20)
+    panelBg.fillStyle(0x1a1a2e, 0.95)
+    panelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 25)
+    panelBg.setDepth(1001) // 设置高深度，确保在最上层
     
     // 添加边框
     const panelBorder = this.add.graphics()
     panelBorder.lineStyle(3, 0x27ae60, 1)
-    panelBorder.strokeRoundedRect(this.sys.game.config.width / 2 - 200, this.sys.game.config.height / 2 - 150, 400, 350, 20)
+    panelBorder.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 25)
+    panelBorder.setDepth(1001) // 设置高深度，确保在最上层
+    
+    // 添加发光效果
+    const glow = this.add.graphics()
+    glow.lineStyle(5, 0x27ae60, 0.5)
+    glow.strokeRoundedRect(panelX - 2, panelY - 2, panelWidth + 4, panelHeight + 4, 27)
+    glow.setDepth(1000)
     
     // 添加标题
-    const title = this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 2 - 100, '游戏胜利！', {
+    const title = this.add.text(this.sys.game.config.width / 2, panelY + 60, '游戏胜利！', {
       fontSize: '48px',
       fill: '#ffffff',
       fontStyle: 'bold',
       stroke: '#27ae60',
-      strokeThickness: 2
+      strokeThickness: 3,
+      fontFamily: 'SimHei, Microsoft YaHei, Heiti SC, 黑体, sans-serif'
     }).setOrigin(0.5)
+    title.setDepth(1002) // 设置高深度，确保在最上层
     
     // 添加分数信息
-    this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 2 - 30, `最终分数: ${this.score}`, {
-      fontSize: '24px',
-      fill: '#ffffff'
-    }).setOrigin(0.5)
-
-    this.add.text(this.sys.game.config.width / 2, this.sys.game.config.height / 2 + 10, `目标分数: ${this.scoreTarget}`, {
-      fontSize: '24px',
-      fill: '#ffffff'
-    }).setOrigin(0.5)
-
-    // 添加重新开始按钮
-    const restartButtonBg = this.add.graphics()
-    restartButtonBg.fillStyle(0x3498db, 0.8)
-    restartButtonBg.fillRoundedRect(0, 0, 180, 60, 20)
-    
-    const restartButton = this.add.container(this.sys.game.config.width / 2 - 100, this.sys.game.config.height / 2 + 60, [restartButtonBg])
-    restartButton.setDepth(1003) // 设置高深度，确保在最上层
-    const restartButtonText = this.add.text(0, 0, '重新开始', {
+    const scoreText1 = this.add.text(this.sys.game.config.width / 2, panelY + 140, `最终分数: ${this.score}`, {
       fontSize: '24px',
       fill: '#ffffff',
-      fontStyle: 'bold'
+      fontFamily: 'SimHei, Microsoft YaHei, Heiti SC, 黑体, sans-serif'
     }).setOrigin(0.5)
-    restartButtonText.setDepth(1004) // 设置高深度，确保在最上层
+    scoreText1.setDepth(1002) // 设置高深度，确保在最上层
+
+    const scoreText2 = this.add.text(this.sys.game.config.width / 2, panelY + 180, `目标分数: ${this.scoreTarget}`, {
+      fontSize: '24px',
+      fill: '#ffffff',
+      fontFamily: 'SimHei, Microsoft YaHei, Heiti SC, 黑体, sans-serif'
+    }).setOrigin(0.5)
+    scoreText2.setDepth(1002) // 设置高深度，确保在最上层
+
+    // 添加祝贺文本
+    const congratulationText = this.add.text(this.sys.game.config.width / 2, panelY + 220, '恭喜你完成关卡！', {
+      fontSize: '20px',
+      fill: '#27ae60',
+      fontFamily: 'SimHei, Microsoft YaHei, Heiti SC, 黑体, sans-serif'
+    }).setOrigin(0.5)
+    congratulationText.setDepth(1002) // 设置高深度，确保在最上层
+
+    // 添加重新开始按钮
+    const restartButton = this.add.container(this.sys.game.config.width / 2 - 110, panelY + 280)
+    restartButton.setDepth(1003) // 设置高深度，确保在最上层
+    
+    const restartButtonBg = this.add.graphics()
+    restartButtonBg.fillStyle(0x3498db, 0.9)
+    restartButtonBg.fillRoundedRect(0, 0, 200, 65, 25)
+    restartButton.add(restartButtonBg)
+    
+    const restartButtonText = this.add.text(100, 32.5, '重新开始', {
+      fontSize: '24px',
+      fill: '#ffffff',
+      fontStyle: 'bold',
+      align: 'center',
+      fontFamily: 'SimHei, Microsoft YaHei, Heiti SC, 黑体, sans-serif'
+    }).setOrigin(0.5)
     restartButton.add(restartButtonText)
     
-    restartButton.setInteractive(new Phaser.Geom.Rectangle(-90, -30, 180, 60), Phaser.Geom.Rectangle.Contains)
+    restartButton.setInteractive(new Phaser.Geom.Rectangle(0, 0, 200, 65), Phaser.Geom.Rectangle.Contains)
     restartButton.on('pointerdown', () => {
       this.scene.restart()
     })
@@ -2645,34 +2910,39 @@ class GameScene extends Phaser.Scene {
       this.tweens.add({
         targets: restartButton,
         scale: 1.05,
-        duration: 100
+        duration: 150,
+        ease: 'Power2.easeOut'
       })
     })
     restartButton.on('pointerout', () => {
-      restartButtonBg.fillStyle(0x3498db, 0.8)
+      restartButtonBg.fillStyle(0x3498db, 0.9)
       this.tweens.add({
         targets: restartButton,
         scale: 1,
-        duration: 100
+        duration: 150,
+        ease: 'Power2.easeOut'
       })
     })
 
     // 添加返回按钮
-    const backButtonBg = this.add.graphics()
-    backButtonBg.fillStyle(0x27ae60, 0.8)
-    backButtonBg.fillRoundedRect(0, 0, 180, 60, 20)
-    
-    const backButton = this.add.container(this.sys.game.config.width / 2 + 100, this.sys.game.config.height / 2 + 60, [backButtonBg])
+    const backButton = this.add.container(this.sys.game.config.width / 2 + 110, panelY + 280)
     backButton.setDepth(1003) // 设置高深度，确保在最上层
-    const backButtonText = this.add.text(0, 0, '返回关卡选择', {
+    
+    const backButtonBg = this.add.graphics()
+    backButtonBg.fillStyle(0x27ae60, 0.9)
+    backButtonBg.fillRoundedRect(0, 0, 200, 65, 25)
+    backButton.add(backButtonBg)
+    
+    const backButtonText = this.add.text(100, 32.5, '返回关卡选择', {
       fontSize: '24px',
       fill: '#ffffff',
-      fontStyle: 'bold'
+      fontStyle: 'bold',
+      align: 'center',
+      fontFamily: 'SimHei, Microsoft YaHei, Heiti SC, 黑体, sans-serif'
     }).setOrigin(0.5)
-    backButtonText.setDepth(1004) // 设置高深度，确保在最上层
     backButton.add(backButtonText)
     
-    backButton.setInteractive(new Phaser.Geom.Rectangle(-90, -30, 180, 60), Phaser.Geom.Rectangle.Contains)
+    backButton.setInteractive(new Phaser.Geom.Rectangle(0, 0, 200, 65), Phaser.Geom.Rectangle.Contains)
     backButton.on('pointerdown', () => {
       this.scene.start('LevelSelectScene')
     })
@@ -2683,15 +2953,17 @@ class GameScene extends Phaser.Scene {
       this.tweens.add({
         targets: backButton,
         scale: 1.05,
-        duration: 100
+        duration: 150,
+        ease: 'Power2.easeOut'
       })
     })
     backButton.on('pointerout', () => {
-      backButtonBg.fillStyle(0x27ae60, 0.8)
+      backButtonBg.fillStyle(0x27ae60, 0.9)
       this.tweens.add({
         targets: backButton,
         scale: 1,
-        duration: 100
+        duration: 150,
+        ease: 'Power2.easeOut'
       })
     })
     
@@ -2699,58 +2971,77 @@ class GameScene extends Phaser.Scene {
     overlay.setAlpha(0)
     panelBg.setAlpha(0)
     panelBorder.setAlpha(0)
+    glow.setAlpha(0)
     title.setScale(0).setAlpha(0)
     scoreText1.setAlpha(0)
     scoreText2.setAlpha(0)
+    congratulationText.setAlpha(0)
     restartButton.setScale(0).setAlpha(0)
     backButton.setScale(0).setAlpha(0)
     
+    // 背景渐入
     this.tweens.add({
       targets: overlay,
       alpha: 1,
-      duration: 300,
+      duration: 500,
       ease: 'Power2.easeOut'
     })
     
+    // 面板渐入
     this.tweens.add({
       targets: panelBg,
       alpha: 1,
-      duration: 300,
+      duration: 500,
       delay: 100,
       ease: 'Power2.easeOut'
     })
     
+    // 边框和发光效果
     this.tweens.add({
-      targets: panelBorder,
+      targets: [panelBorder, glow],
       alpha: 1,
-      duration: 300,
+      duration: 500,
       delay: 150,
       ease: 'Power2.easeOut'
     })
     
+    // 标题动画
     this.tweens.add({
       targets: title,
       scale: 1,
       alpha: 1,
-      duration: 500,
+      duration: 700,
       delay: 200,
       ease: 'Back.easeOut'
     })
     
+    // 分数信息动画
     this.tweens.add({
       targets: [scoreText1, scoreText2],
       alpha: 1,
+      y: '+=20',
       duration: 500,
-      delay: 250,
+      delay: 300,
       ease: 'Power2.easeOut'
     })
     
+    // 祝贺文本动画
+    this.tweens.add({
+      targets: congratulationText,
+      alpha: 1,
+      y: '+=20',
+      duration: 500,
+      delay: 400,
+      ease: 'Power2.easeOut'
+    })
+    
+    // 按钮动画
     this.tweens.add({
       targets: restartButton,
       scale: 1,
       alpha: 1,
-      duration: 500,
-      delay: 300,
+      duration: 600,
+      delay: 450,
       ease: 'Bounce.easeOut'
     })
     
@@ -2758,8 +3049,8 @@ class GameScene extends Phaser.Scene {
       targets: backButton,
       scale: 1,
       alpha: 1,
-      duration: 500,
-      delay: 350,
+      duration: 600,
+      delay: 500,
       ease: 'Bounce.easeOut'
     })
   }
