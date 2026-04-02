@@ -125,7 +125,7 @@ class LoginScene extends Phaser.Scene {
   renderNoticePanel(noticeData) {
     // 创建公告面板
     const panelWidth = Math.min(600, this.sys.game.config.width * 0.8)
-    const panelHeight = Math.min(400, this.sys.game.config.height * 0.6)
+    const panelHeight = Math.min(500, this.sys.game.config.height * 0.7)
     const panelX = (this.sys.game.config.width - panelWidth) / 2
     const panelY = (this.sys.game.config.height - panelHeight) / 2
     
@@ -153,18 +153,118 @@ class LoginScene extends Phaser.Scene {
       strokeThickness: 2
     }).setOrigin(0.5)
     
-    // 添加公告内容
+    // 获取公告列表
+    const notices = noticeData.notices || []
+    let currentNoticeIndex = 0
+    
+    // 添加公告内容区域
     const contentY = panelY + 80
     const contentWidth = panelWidth - 60
+    const contentHeight = panelHeight - 180
     
-    const contentText = this.add.text(this.sys.game.config.width / 2, contentY, noticeData.content, {
-      fontSize: '16px',
-      fill: '#ffffff',
-      wordWrap: {
-        width: contentWidth,
-        useAdvancedWrap: true
-      }
-    }).setOrigin(0.5)
+    // 创建公告内容容器
+    const contentContainer = this.add.container(this.sys.game.config.width / 2, contentY)
+    
+    // 创建公告元素数组
+    const noticeElements = []
+    
+    notices.forEach((notice, index) => {
+      const noticeGroup = this.add.container(0, 0)
+      
+      // 添加公告标题
+      const noticeTitle = this.add.text(0, 0, notice.title, {
+        fontSize: '18px',
+        fill: '#3498db',
+        fontStyle: 'bold',
+        wordWrap: {
+          width: contentWidth,
+          useAdvancedWrap: true
+        }
+      }).setOrigin(0.5)
+      noticeGroup.add(noticeTitle)
+      
+      // 添加发布时间
+      const noticeDate = this.add.text(0, 25, notice.date, {
+        fontSize: '14px',
+        fill: '#95a5a6',
+        wordWrap: {
+          width: contentWidth,
+          useAdvancedWrap: true
+        }
+      }).setOrigin(0.5)
+      noticeGroup.add(noticeDate)
+      
+      // 添加内容
+      const noticeContent = this.add.text(0, 100, notice.content, {
+        fontSize: '16px',
+        fill: '#ffffff',
+        lineSpacing: 10,
+        wordWrap: {
+          width: contentWidth,
+          useAdvancedWrap: true
+        }
+      }).setOrigin(0.5)
+      noticeGroup.add(noticeContent)
+      
+      // 初始隐藏所有公告
+      noticeGroup.setAlpha(0)
+      noticeElements.push(noticeGroup)
+      contentContainer.add(noticeGroup)
+    })
+    
+    // 显示当前公告
+    if (noticeElements.length > 0) {
+      this.tweens.add({
+        targets: noticeElements[currentNoticeIndex],
+        alpha: 1,
+        duration: 500
+      })
+    }
+    
+    // 添加导航按钮
+    let prevButton, nextButton
+    if (notices.length > 1) {
+      // 上一页按钮
+      prevButton = this.add.text(panelX + 30, panelY + panelHeight - 40, '上一页', {
+        fontSize: '14px',
+        fill: '#ffffff',
+        backgroundColor: 'rgba(52, 152, 219, 0.8)',
+        padding: { left: 15, right: 15, top: 5, bottom: 5 },
+        borderRadius: 15
+      }).setInteractive()
+      
+      prevButton.on('pointerdown', () => {
+        this.switchNotice(-1)
+      })
+      
+      // 下一页按钮
+      nextButton = this.add.text(panelX + panelWidth - 90, panelY + panelHeight - 40, '下一页', {
+        fontSize: '14px',
+        fill: '#ffffff',
+        backgroundColor: 'rgba(52, 152, 219, 0.8)',
+        padding: { left: 15, right: 15, top: 5, bottom: 5 },
+        borderRadius: 15
+      }).setInteractive()
+      
+      nextButton.on('pointerdown', () => {
+        this.switchNotice(1)
+      })
+      
+      // 按钮悬停效果
+      prevButton.on('pointerover', () => {
+        prevButton.setBackgroundColor('rgba(41, 128, 185, 1)')
+      })
+      prevButton.on('pointerout', () => {
+        prevButton.setBackgroundColor('rgba(52, 152, 219, 0.8)')
+      })
+      
+      nextButton.on('pointerover', () => {
+        nextButton.setBackgroundColor('rgba(41, 128, 185, 1)')
+      })
+      nextButton.on('pointerout', () => {
+        nextButton.setBackgroundColor('rgba(52, 152, 219, 0.8)')
+      })
+    }
     
     // 添加关闭按钮
     const closeButton = this.add.image(panelX + panelWidth - 30, panelY + 30, 'closeButton')
@@ -175,7 +275,9 @@ class LoginScene extends Phaser.Scene {
       panelBg.destroy()
       panelBorder.destroy()
       title.destroy()
-      contentText.destroy()
+      contentContainer.destroy()
+      if (prevButton) prevButton.destroy()
+      if (nextButton) nextButton.destroy()
       closeButton.destroy()
     })
     
@@ -184,6 +286,9 @@ class LoginScene extends Phaser.Scene {
     panelBg.setAlpha(0)
     panelBorder.setAlpha(0)
     title.setScale(0).setAlpha(0)
+    contentContainer.setAlpha(0)
+    if (prevButton) prevButton.setAlpha(0)
+    if (nextButton) nextButton.setAlpha(0)
     closeButton.setScale(0).setAlpha(0)
     
     this.tweens.add({
@@ -219,12 +324,64 @@ class LoginScene extends Phaser.Scene {
     })
     
     this.tweens.add({
+      targets: contentContainer,
+      alpha: 1,
+      duration: 500,
+      delay: 250,
+      ease: 'Power2.easeOut'
+    })
+    
+    if (prevButton && nextButton) {
+      this.tweens.add({
+        targets: [prevButton, nextButton],
+        alpha: 1,
+        duration: 500,
+        delay: 300,
+        ease: 'Power2.easeOut'
+      })
+    }
+    
+    this.tweens.add({
       targets: closeButton,
       scale: 0.5,
       alpha: 1,
       duration: 500,
-      delay: 250,
+      delay: 300,
       ease: 'Bounce.easeOut'
+    })
+    
+    // 保存公告相关引用
+    this.currentNoticeIndex = currentNoticeIndex
+    this.noticeElements = noticeElements
+    this.notices = notices
+  }
+  
+  switchNotice(direction) {
+    if (!this.noticeElements || this.noticeElements.length <= 1) return
+    
+    // 隐藏当前公告
+    this.tweens.add({
+      targets: this.noticeElements[this.currentNoticeIndex],
+      alpha: 0,
+      x: direction > 0 ? -20 : 20,
+      duration: 300,
+      ease: 'Power2.easeInOut'
+    })
+    
+    // 计算下一个公告索引
+    this.currentNoticeIndex = (this.currentNoticeIndex + direction + this.notices.length) % this.notices.length
+    
+    // 显示下一个公告
+    const nextNotice = this.noticeElements[this.currentNoticeIndex]
+    nextNotice.setX(direction > 0 ? 20 : -20)
+    nextNotice.setAlpha(0)
+    
+    this.tweens.add({
+      targets: nextNotice,
+      alpha: 1,
+      x: 0,
+      duration: 300,
+      ease: 'Power2.easeInOut'
     })
   }
 
@@ -368,49 +525,7 @@ class LevelSelectScene extends Phaser.Scene {
       ease: 'Power2.easeOut'
     })
 
-    // 添加设置按钮
-    const settingsButton = this.add.text(this.sys.game.config.width - 150, 50, '设置', {
-      fontSize: '20px',
-      fill: '#ffffff',
-      backgroundColor: 'rgba(155, 89, 182, 0.8)',
-      padding: { left: 20, right: 20, top: 10, bottom: 10 },
-      borderRadius: 20
-    })
-    settingsButton.setInteractive()
-    settingsButton.on('pointerdown', () => {
-      // 场景退出动画
-      this.cameras.main.fadeOut(300)
-      this.time.delayedCall(300, () => {
-        this.scene.start('SettingsScene')
-      })
-    })
-    // 按钮悬停效果
-    settingsButton.on('pointerover', () => {
-      settingsButton.setBackgroundColor('rgba(142, 68, 173, 1)')
-      this.tweens.add({
-        targets: settingsButton,
-        scale: 1.05,
-        duration: 100
-      })
-    })
-    settingsButton.on('pointerout', () => {
-      settingsButton.setBackgroundColor('rgba(155, 89, 182, 0.8)')
-      this.tweens.add({
-        targets: settingsButton,
-        scale: 1,
-        duration: 100
-      })
-    })
-    // 按钮进入动画
-    settingsButton.setX(this.sys.game.config.width + 100).setAlpha(0)
-    this.tweens.add({
-      targets: settingsButton,
-      x: this.sys.game.config.width - 150,
-      alpha: 1,
-      duration: 500,
-      delay: 100,
-      ease: 'Power2.easeOut'
-    })
+
 
     // 添加音乐开关按钮
     this.backgroundMusic = this.sound.get('backgroundMusic')
@@ -1159,6 +1274,9 @@ class GameScene extends Phaser.Scene {
         this.blockTypes = 4
       }
     }
+    
+    // 初始化当前关卡分数（每个关卡独立计算）
+    this.score = 0
 
     // 计算棋盘自适应缩放
     const containerWidth = this.sys.game.config.width
@@ -1888,12 +2006,22 @@ class GameScene extends Phaser.Scene {
 
   swapBlocksBack(block1, block2) {
     // 交换回来
+    // 边界条件检查
+    if (!block1 || !block2 || !block1.getData || !block2.getData || !block1.active || !block2.active) {
+      return
+    }
+
     const x1 = block1.getData('x')
     const y1 = block1.getData('y')
     const x2 = block2.getData('x')
     const y2 = block2.getData('y')
     const type1 = block1.getData('type')
     const type2 = block2.getData('type')
+
+    // 检查数据有效性
+    if (x1 === undefined || y1 === undefined || x2 === undefined || y2 === undefined || type1 === undefined || type2 === undefined) {
+      return
+    }
 
     // 交换游戏板中的数据
     this.board[y1][x1] = type2
@@ -1909,12 +2037,22 @@ class GameScene extends Phaser.Scene {
       y: block2.y,
       duration: 200,
       onComplete: () => {
+        // 检查方块是否仍然有效
+        if (!block1.active || !block2.active) {
+          return
+        }
+        
         this.tweens.add({
           targets: block2,
           x: tempX,
           y: tempY,
           duration: 200,
           onComplete: () => {
+            // 检查方块是否仍然有效
+            if (!block1.active || !block2.active) {
+              return
+            }
+            
             // 更新方块的数据
             block1.setData('x', x2)
             block1.setData('y', y2)
@@ -2305,7 +2443,7 @@ class GameScene extends Phaser.Scene {
     restartButtonBg.fillStyle(0x3498db, 0.8)
     restartButtonBg.fillRoundedRect(0, 0, 180, 60, 20)
     
-    const restartButton = this.add.container(this.sys.game.config.width / 2 - 100, this.sys.game.config.height / 2 + 60, [restartButtonBg])
+    const restartButton = this.add.container(this.sys.game.config.width / 2 - 100, this.sys.game.config.height / 2 + 80, [restartButtonBg])
     restartButton.setDepth(1003) // 设置高深度，确保在最上层
     const restartButtonText = this.add.text(0, 0, '重新开始', {
       fontSize: '24px',
@@ -2343,7 +2481,7 @@ class GameScene extends Phaser.Scene {
     backButtonBg.fillStyle(0xe74c3c, 0.8)
     backButtonBg.fillRoundedRect(0, 0, 180, 60, 20)
     
-    const backButton = this.add.container(this.sys.game.config.width / 2 + 100, this.sys.game.config.height / 2 + 60, [backButtonBg])
+    const backButton = this.add.container(this.sys.game.config.width / 2 + 100, this.sys.game.config.height / 2 + 80, [backButtonBg])
     backButton.setDepth(1003) // 设置高深度，确保在最上层
     const backButtonText = this.add.text(0, 0, '返回关卡选择', {
       fontSize: '24px',
@@ -2381,6 +2519,8 @@ class GameScene extends Phaser.Scene {
     panelBg.setAlpha(0)
     panelBorder.setAlpha(0)
     title.setScale(0).setAlpha(0)
+    scoreText1.setAlpha(0)
+    scoreText2.setAlpha(0)
     restartButton.setScale(0).setAlpha(0)
     backButton.setScale(0).setAlpha(0)
     
@@ -2414,6 +2554,14 @@ class GameScene extends Phaser.Scene {
       duration: 500,
       delay: 200,
       ease: 'Back.easeOut'
+    })
+    
+    this.tweens.add({
+      targets: [scoreText1, scoreText2],
+      alpha: 1,
+      duration: 500,
+      delay: 250,
+      ease: 'Power2.easeOut'
     })
     
     this.tweens.add({
@@ -2552,6 +2700,8 @@ class GameScene extends Phaser.Scene {
     panelBg.setAlpha(0)
     panelBorder.setAlpha(0)
     title.setScale(0).setAlpha(0)
+    scoreText1.setAlpha(0)
+    scoreText2.setAlpha(0)
     restartButton.setScale(0).setAlpha(0)
     backButton.setScale(0).setAlpha(0)
     
@@ -2585,6 +2735,14 @@ class GameScene extends Phaser.Scene {
       duration: 500,
       delay: 200,
       ease: 'Back.easeOut'
+    })
+    
+    this.tweens.add({
+      targets: [scoreText1, scoreText2],
+      alpha: 1,
+      duration: 500,
+      delay: 250,
+      ease: 'Power2.easeOut'
     })
     
     this.tweens.add({
@@ -2655,271 +2813,14 @@ class GameScene extends Phaser.Scene {
 }
 
 // 设置场景
-class SettingsScene extends Phaser.Scene {
-  constructor() {
-    super('SettingsScene')
-  }
 
-  preload() {
-    // 加载背景图片
-    this.load.image('gameBg', 'image/background/game_bg.png')
-    this.load.image('musicOn', 'image/music-on.png')
-    this.load.image('musicOff', 'image/music-off.png')
-  }
-
-  create() {
-    // 添加背景图片
-    this.add.image(this.sys.game.config.width / 2, this.sys.game.config.height / 2, 'gameBg')
-      .setDisplaySize(this.sys.game.config.width, this.sys.game.config.height)
-    
-    // 添加渐变背景覆盖层，增强视觉层次感
-    const gradient = this.add.graphics()
-    gradient.fillGradientStyle(0x1a1a2e, 0x16213e, 0x0f3460, 0x1a1a2e, 1)
-    gradient.fillRect(0, 0, this.sys.game.config.width, this.sys.game.config.height)
-    gradient.setAlpha(0.8)
-
-    // 添加装饰性网格背景
-    const grid = this.add.graphics()
-    grid.lineStyle(1, 0x27ae60, 0.2)
-    const gridSize = 50
-    for (let x = 0; x < this.sys.game.config.width; x += gridSize) {
-      grid.lineBetween(x, 0, x, this.sys.game.config.height)
-    }
-    for (let y = 0; y < this.sys.game.config.height; y += gridSize) {
-      grid.lineBetween(0, y, this.sys.game.config.width, y)
-    }
-
-    // 添加标题
-    const title = this.add.text(this.sys.game.config.width / 2, 100, '游戏设置', {
-      fontSize: '48px',
-      fill: '#ffffff',
-      fontStyle: 'bold',
-      stroke: '#27ae60',
-      strokeThickness: 2
-    }).setOrigin(0.5)
-    // 标题进入动画
-    title.setScale(0).setAlpha(0)
-    this.tweens.add({
-      targets: title,
-      scale: 1,
-      alpha: 1,
-      duration: 800,
-      ease: 'Back.easeOut'
-    })
-
-    // 添加标题下方的装饰线
-    const titleLine = this.add.graphics()
-    titleLine.lineStyle(3, 0x27ae60, 1)
-    titleLine.lineBetween(this.sys.game.config.width / 2 - 100, 140, this.sys.game.config.width / 2 + 100, 140)
-    titleLine.setAlpha(0)
-    this.tweens.add({
-      targets: titleLine,
-      alpha: 1,
-      duration: 600,
-      delay: 400,
-      ease: 'Power2.easeOut'
-    })
-
-    // 添加返回按钮
-    const backButton = this.add.text(50, 50, '返回', {
-      fontSize: '20px',
-      fill: '#ffffff',
-      backgroundColor: 'rgba(52, 152, 219, 0.8)',
-      padding: { left: 20, right: 20, top: 10, bottom: 10 },
-      borderRadius: 20
-    })
-    backButton.setInteractive()
-    backButton.on('pointerdown', () => {
-      // 场景退出动画
-      this.cameras.main.fadeOut(300)
-      this.time.delayedCall(300, () => {
-        this.scene.start('LevelSelectScene')
-      })
-    })
-    // 按钮悬停效果
-    backButton.on('pointerover', () => {
-      backButton.setBackgroundColor('rgba(41, 128, 185, 1)')
-      this.tweens.add({
-        targets: backButton,
-        scale: 1.05,
-        duration: 100
-      })
-    })
-    backButton.on('pointerout', () => {
-      backButton.setBackgroundColor('rgba(52, 152, 219, 0.8)')
-      this.tweens.add({
-        targets: backButton,
-        scale: 1,
-        duration: 100
-      })
-    })
-    // 按钮进入动画
-    backButton.setX(-100).setAlpha(0)
-    this.tweens.add({
-      targets: backButton,
-      x: 50,
-      alpha: 1,
-      duration: 500,
-      delay: 100,
-      ease: 'Power2.easeOut'
-    })
-
-    // 添加音乐开关按钮
-    this.backgroundMusic = this.sound.get('backgroundMusic')
-    this.musicOn = this.backgroundMusic && this.backgroundMusic.isPlaying
-    this.musicButton = this.add.image(this.sys.game.config.width - 50, 50, this.musicOn ? 'musicOn' : 'musicOff')
-      .setInteractive()
-      .setScale(0.5)
-    this.musicButton.on('pointerdown', () => {
-      this.toggleMusic()
-      // 按钮点击动画
-      this.tweens.add({
-        targets: this.musicButton,
-        scale: 0.4,
-        duration: 100,
-        yoyo: true,
-        repeat: 1
-      })
-    })
-    // 按钮进入动画
-    this.musicButton.setX(this.sys.game.config.width + 100).setAlpha(0)
-    this.tweens.add({
-      targets: this.musicButton,
-      x: this.sys.game.config.width - 50,
-      alpha: 1,
-      duration: 500,
-      delay: 150,
-      ease: 'Power2.easeOut'
-    })
-
-    // 创建设置选项容器 - 响应式布局
-    const settingsContainer = this.add.container(this.sys.game.config.width / 2, 250)
-    const optionWidth = Math.min(280, this.sys.game.config.width * 0.35)
-    const optionHeight = 60
-    const optionGap = 15
-
-    // 添加确认按钮
-    const confirmButtonBg = this.add.graphics()
-    confirmButtonBg.fillStyle(0x27ae60, 0.8)
-    confirmButtonBg.fillRoundedRect(0, 0, optionWidth, optionHeight, 15)
-    
-    const confirmButton = this.add.container(this.sys.game.config.width / 2, 400, [confirmButtonBg])
-    
-    const confirmButtonText = this.add.text(0, 0, '确认', {
-      fontSize: '24px',
-      fill: '#ffffff',
-      fontStyle: 'bold'
-    }).setOrigin(0.5)
-    confirmButton.add(confirmButtonText)
-    
-    confirmButton.setInteractive(new Phaser.Geom.Rectangle(0, 0, optionWidth, optionHeight), Phaser.Geom.Rectangle.Contains)
-    confirmButton.on('pointerdown', () => {
-      // 场景退出动画
-      this.cameras.main.fadeOut(300)
-      this.time.delayedCall(300, () => {
-        this.scene.start('LevelSelectScene')
-      })
-    })
-    // 按钮悬停效果
-    confirmButton.on('pointerover', () => {
-      confirmButtonBg.fillStyle(0x229954, 1)
-      this.tweens.add({
-        targets: confirmButton,
-        scale: 1.05,
-        duration: 100
-      })
-    })
-    confirmButton.on('pointerout', () => {
-      confirmButtonBg.fillStyle(0x27ae60, 0.8)
-      this.tweens.add({
-        targets: confirmButton,
-        scale: 1,
-        duration: 100
-      })
-    })
-    // 按钮进入动画
-    confirmButton.setScale(0).setAlpha(0)
-    this.tweens.add({
-      targets: confirmButton,
-      scale: 1,
-      alpha: 1,
-      duration: 600,
-      delay: 400,
-      ease: 'Bounce.easeOut'
-    })
-    
-    // 添加粒子效果
-    this.addParticles()
-    
-    // 场景进入动画
-    this.cameras.main.fadeIn(500)
-  }
-
-  addParticles() {
-    // 创建粒子系统
-    const particles = this.add.particles('logo')
-    
-    const emitter = particles.createEmitter({
-      x: { min: 0, max: this.sys.game.config.width },
-      y: -50,
-      lifespan: 2000,
-      speed: { min: 100, max: 200 },
-      gravity: 200,
-      scale: { start: 0.1, end: 0.05 },
-      alpha: { start: 0.5, end: 0 },
-      frequency: 1500,
-      maxParticles: 8
-    })
-  }
-
-  toggleMusic() {
-    this.musicOn = !this.musicOn
-    const backgroundMusic = this.sound.get('backgroundMusic')
-    if (backgroundMusic) {
-      if (this.musicOn) {
-        backgroundMusic.play()
-        this.musicButton.setTexture('musicOn')
-      } else {
-        backgroundMusic.pause()
-        this.musicButton.setTexture('musicOff')
-      }
-    }
-  }
-
-  resize() {
-    // 处理窗口大小变化 - 重新计算布局
-    const containerWidth = this.sys.game.config.width
-    const containerHeight = this.sys.game.config.height
-    
-    // 重新计算棋盘自适应缩放
-    const infoPanelWidth = 280
-    const sideMargin = 40
-    const topMargin = 120
-    const bottomMargin = 40
-    
-    const availableWidth = containerWidth - infoPanelWidth - sideMargin * 3
-    const availableHeight = containerHeight - topMargin - bottomMargin
-    
-    const maxBlockSizeByWidth = availableWidth / this.boardWidth
-    const maxBlockSizeByHeight = availableHeight / this.boardHeight
-    this.blockSize = Math.floor(Math.min(maxBlockSizeByWidth, maxBlockSizeByHeight))
-    this.blockSize = Math.max(30, Math.min(80, this.blockSize))
-    
-    this.boardX = infoPanelWidth + sideMargin + (availableWidth - this.boardWidth * this.blockSize) / 2
-    this.boardY = topMargin + (availableHeight - this.boardHeight * this.blockSize) / 2
-    
-    // 重新创建界面元素需要重启场景
-    // 简单的处理方式是标记需要刷新
-    this.scene.restart()
-  }
-}
 
 // 游戏配置
 const config = {
   type: Phaser.AUTO,
   width: window.innerWidth,
   height: window.innerHeight,
-  scene: [LoginScene, LevelSelectScene, CustomLevelScene, GameScene, SettingsScene],
+  scene: [LoginScene, LevelSelectScene, CustomLevelScene, GameScene],
   physics: {
     default: 'arcade',
     arcade: {
